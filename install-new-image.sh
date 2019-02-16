@@ -69,5 +69,5 @@ initrd \${HTTP_STATE}/pxeboot.initrd.xz || goto error
 boot
 
 :error
-prompt --key s --timeout 60 ERROR, hit 's' for the iPXE shell; reboot in 60 seconds && shell || reboot
+prompt --key s --timeout 60000 ERROR, hit 's' for the iPXE shell; reboot in 60 seconds && shell || reboot
 EOF
