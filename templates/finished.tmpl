@@ -1,0 +1,9 @@
+#!ipxe
+set HTTP_BASE http://@SERVER_IP@:@SERVER_PORT@
+set HTTP_STATE ${HTTP_BASE}/@state@
+echo KIWIspray node @id@ template @state@
+echo Installation node: ${HTTP_BASE}
+echo Installation repo: ${HTTP_STATE}
+
+exit 0
+# continue to boot next option

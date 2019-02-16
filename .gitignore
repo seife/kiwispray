@@ -1,0 +1,4 @@
+known_hosts.json
+images/
+KS/*.pyc
+KS/__pycache__/

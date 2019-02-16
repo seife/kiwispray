@@ -1,0 +1,14 @@
+#!ipxe
+echo
+echo ============================================================================
+echo KIWIspray new host number @id@
+echo
+echo host is discovered with the following data:
+@HOST_DATA@
+echo
+#echo starting iPXE shell, enter "reboot" to reboot or "exit" for next boot option
+#echo enter "autoboot" to retry
+echo ============================================================================
+
+imgfree
+prompt --key s --timeout 1800000 press 's' for the iPXE shell, rebooting in 30 minutes && shell || reboot

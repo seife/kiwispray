@@ -1,0 +1,22 @@
+#!ipxe
+set HTTP_BASE http://@SERVER_IP@:@SERVER_PORT@
+set HTTP_STATE ${HTTP_BASE}/images/@state@
+set KERNEL_ARG rd.kiwi.install.pxe  net.ifnames=0 video=800x600
+set IMAGE_NAME @metadata.image_name@
+set KERNEL_LINE rd.kiwi.install.image=${HTTP_STATE}/${IMAGE_NAME} ${KERNEL_ARG} razorurl=${HTTP_BASE}/post-install?id=@id@
+
+echo KIWIspray node @id@ template @state@
+echo Installation node: ${HTTP_BASE}
+echo Installation repo: ${HTTP_STATE}
+echo Kernel args: ${KERNEL_ARG}
+echo
+echo kernel ${HTTP_STATE}/pxeboot.kernel
+echo initrd ${HTTP_STATE}/pxeboot.initrd.xz
+echo
+sleep 3
+kernel ${HTTP_STATE}/pxeboot.kernel ${KERNEL_LINE} || goto error
+initrd ${HTTP_STATE}/pxeboot.initrd.xz || goto error
+boot
+
+:error
+prompt --key s --timeout 60 ERROR, hit 's' for the iPXE shell; reboot in 60 seconds && shell || reboot

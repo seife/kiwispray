@@ -1,0 +1,72 @@
+#!ipxe
+
+# The number of tries made to obtain DHCP configuration to date, and the
+# maximum number to make before we give up.  Each time DHCP failed we will
+# sleep one secord per attempt already made, starting at one second, and
+# ramping up as we go.
+set tries:uint32    0
+set maxtries:uint32 60
+
+:retry
+
+isset ${ip} || goto dhcp_net0
+set dhcp_mac ${mac:hexhyp}
+goto chain_boot
+
+:dhcp_net0
+isset ${net0/mac} && dhcp net0 || goto dhcp_net1
+echo net0 has DHCP
+set dhcp_mac net0$${net0/mac:hexhyp}
+
+:dhcp_net1
+isset ${net1/mac} && dhcp net1 || goto dhcp_net2
+echo net1 has DHCP
+set dhcp_mac net1$${net1/mac:hexhyp}
+
+:dhcp_net2
+isset ${net2/mac} && dhcp net2 || goto dhcp_net3
+echo net2 has DHCP
+set dhcp_mac net2$${net2/mac:hexhyp}
+
+:dhcp_net3
+isset ${net3/mac} && dhcp net3 || goto dhcp_net4
+echo net3 has DHCP
+set dhcp_mac net3$${net3/mac:hexhyp}
+
+:dhcp_net4
+isset ${net4/mac} && dhcp net4 || goto dhcp_net5
+echo net4 has DHCP
+set dhcp_mac net4$${net4/mac:hexhyp}
+
+:dhcp_net5
+isset ${net5/mac} && dhcp net5 || goto dhcp_net6
+echo net5 has DHCP
+set dhcp_mac net5$${net5/mac:hexhyp}
+
+:dhcp_net6
+isset ${net6/mac} && dhcp net6 || goto dhcp_net7
+echo net6 has DHCP
+set dhcp_mac net6$${net6/mac:hexhyp}
+
+:dhcp_net7
+isset ${net7/mac} && dhcp net7 || goto chain_boot
+echo net7 has DHCP
+set dhcp_mac net7$${net7/mac:hexhyp}
+
+
+:chain_boot
+chain http://@SERVER_IP@:@SERVER_PORT@/bootstrap?net0=${net0/mac:hexhyp}&net1=${net1/mac:hexhyp}&net2=${net2/mac:hexhyp}&net3=${net3/mac:hexhyp}&net4=${net4/mac:hexhyp}&net5=${net5/mac:hexhyp}&net6=${net6/mac:hexhyp}&net7=${net7/mac:hexhyp}&dhcp_mac=${dhcp_mac}&serial=${serial}&uuid=${uuid} || goto error
+echo successfully completed the chain-loaded script; booting locally with 'exit'
+exit 1
+
+:error
+iseq ${tries} ${maxtries} && goto failed
+inc tries
+sleep ${tries}
+goto retry
+
+:failed
+echo failed to obtain DHCP data after ${tries} attempts, giving up.
+sleep 60
+reboot
+

@@ -1,0 +1,49 @@
+#!/bin/bash
+LOG=/var/log/kiwispray.log
+exec >> $LOG 2>&1
+
+echo "Starting post_install"
+
+# Wait for network to come up
+found=false
+for i in 1 2 3 4 5 6 7 8 9
+do
+  if ip route get 8.8.8.8; then
+    found=true
+    break
+  fi
+  sleep 3
+done
+
+$found || exit 1
+
+# Configure hostname.
+if [ @metadata.hostname@ != "@metadata"."hostname@" ]; then
+	/usr/bin/hostnamectl set-hostname @metadata.hostname@
+	# make wicked aware of the changed hostname
+	if systemctl status wicked.service; then
+		rm -f /var/lib/wicked/lease*.xml
+		systemctl restart wicked.service
+	fi
+fi
+
+# configure salt-minion
+if [ @metadata.fqdn@ != "@metadata"."fqdn@" ] && [ -d /etc/salt ]; then
+cat <<EOF > /etc/salt/minion
+master: 10.244.85.250
+id: @metadata.fqdn@
+EOF
+fi
+
+# add deployment info to message of the day file
+cat <<EOF > /etc/motd
+Installed by KIWIspray using @state@ state
+Repo: http://@SERVER_IP@:@SERVER_PORT@/@state@
+Node: @id@
+Install log: $LOG
+
+EOF
+
+# We are done
+curl -s http://@SERVER_IP@:@SERVER_PORT@/finish?id=@id@
+
