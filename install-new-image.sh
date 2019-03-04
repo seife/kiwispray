@@ -53,7 +53,7 @@ set HTTP_BASE http://@SERVER_IP@:@SERVER_PORT@
 set HTTP_STATE \${HTTP_BASE}/images/@state@
 set KERNEL_ARG @_KERNEL_ARG_@
 set IMAGE_NAME @_IMAGE_NAME_@
-set KERNEL_LINE rd.kiwi.install.image=\${HTTP_STATE}/\${IMAGE_NAME} \${KERNEL_ARG} BOOTIF=01-\${mac:hexhyp} razorurl=\${HTTP_BASE}/post-install?id=@id@
+set KERNEL_LINE rd.kiwi.install.pass.bootparam rd.kiwi.install.image=\${HTTP_STATE}/\${IMAGE_NAME} \${KERNEL_ARG} BOOTIF=01-\${mac:hexhyp} razorurl=\${HTTP_BASE}/post-install?id=@id@
 
 echo KIWIspray node @id@ template @state@
 echo Installation node: \${HTTP_BASE}
