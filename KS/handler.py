@@ -25,9 +25,16 @@ def respond_to_get_request(self, path):
     addrs = ({ 'ip': loc[0], 'port': loc[1] }, { 'ip': rem[0], 'port': rem[1] })
     logging.debug('>>>>Req->: %s', path)
     # logging.debug('>>>>Req->: %s', addrs)
-    args = ""
+    args = {}
     if '?' in path:
-        (path, args) = path.split("?", 1)
+        (path, argstr) = path.split("?", 1)
+        args = dict(parse_qsl(argstr))
+    # id is wanted by most functions, sanitize to avoid checking everywhere
+    try:
+        tmp = int(args['id'])
+        args['id'] = tmp
+    except:
+        args['id'] = 0
     logging.info("path: %s args: %s", path, args)
     if path == '/bootstrap':
         data = bootme(args, addrs)
@@ -111,9 +118,8 @@ def run_http(address = '', port = 5000):
     httpd.serve_forever()
 
 def bootme(args, addrs):
-    a = parse_qsl(args)
-    logging.debug("bootme: %s" % a)
-    known, num, host = helpers.find_host(a)
+    logging.debug("bootme: %s" % args)
+    known, num, host = helpers.find_host(args)
     logging.debug("known, num: %s, %s", known, num)
     lip = addrs[0]
     hostdata = { 'HOST_DATA': 'unknown', 'HOST': num, 'SERVER_IP': lip['ip'], 'SERVER_PORT': lip['port'] }
@@ -140,12 +146,8 @@ def bootme(args, addrs):
     return helpers.render_template('new_host.tmpl', replace = hostdata)
 
 def post_install(args, addrs):
-    a = dict(parse_qsl(args))
-    logging.debug("post_install: %s" % a)
-    try:
-        id = int(a['id'])
-    except:
-        id = 0
+    logging.debug("post_install: %s" % args)
+    id = args['id']
     if id == 0:
         logging.warning("post_install: no ID")
         return bytes('invalid query, no id\n\n', 'utf-8')
@@ -161,12 +163,8 @@ def post_install(args, addrs):
     return bytes('host %s not found\n\n' % id, 'utf-8')
 
 def finish(args, addrs):
-    a = dict(parse_qsl(args))
-    logging.debug("finish: args '%s'", a)
-    try:
-        id = int(a['id'])
-    except:
-        id = 0
+    logging.debug("finish: args '%s'", args)
+    id = args['id']
     if id == 0:
         logging.warning("finish: no ID")
         return bytes('invalid query, no id\n\n', 'utf-8')
@@ -176,7 +174,6 @@ def finish(args, addrs):
     return bytes('host %s not found\n\n' % id, 'utf-8')
 
 def list_hosts(args):
-    a = dict(parse_qsl(args))
     fmt = "%4s %-20s %-10s %-s\n"
     hosts = helpers.get_hosts()
     data = fmt % ('#Id', 'Hostname', 'State', 'Serial#')

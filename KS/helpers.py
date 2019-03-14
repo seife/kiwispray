@@ -65,7 +65,8 @@ def find_host(args):
     hostid = 0
     lock.acquire()
     tmph = { 'macs': '', 'serial': '', 'uuid': '', 'hostname': 'not-set', 'metadata': { } }
-    for key, arg in args:
+    for key in args:
+        arg = args[key]
         logging.debug("find_host key %s %s", key, arg)
         arg = arg.upper()
         if not arg:
