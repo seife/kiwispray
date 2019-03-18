@@ -42,11 +42,11 @@ def respond_to_get_request(self, path):
         data = bootme(args, addrs)
         return send_back(self, data)
     elif path == '/post-install':
-        data = post_install(args, addrs)
-        return send_back(self, data)
+        data, status = post_install(args, addrs)
+        return send_back(self, data, status)
     elif path == '/finish':
-        data = finish(args, addrs)
-        return send_back(self, data)
+        data, status = finish(args, addrs)
+        return send_back(self, data, status)
     elif path == '/hosts':
         data = list_hosts(args)
         return send_back(self, data)
@@ -152,20 +152,20 @@ def post_install(args, addrs):
     id = args['id']
     if id == 0:
         logging.warning("post_install: no ID")
-        return bytes('invalid query, no id\n\n', 'utf-8')
+        return bytes('invalid query, no id\n\n', 'utf-8'), 404
     host = helpers.find_host_by_id(id)
     if host['bootid'] != args['bootid']:
         logging.warning("post_install: given bootid '%s' is wrong (%s)", args['bootid'], host['bootid'])
-        return bytes('invalid bootid\n\n', 'utf-8')
+        return bytes('invalid bootid\n\n', 'utf-8'), 401
     lip = addrs[0]
     hostdata = { 'HOST': id, 'SERVER_IP': lip['ip'], 'SERVER_PORT': lip['port'] }
     if host:
         hostdata.update(host)
         data = helpers.render_template('images/%s/post_install.tmpl' % host['state'], replace = hostdata, failhard = True)
         if data:
-            return data
-        return helpers.render_template('post_install.tmpl', replace = hostdata)
-    return bytes('host %s not found\n\n' % id, 'utf-8')
+            return data, 200
+        return helpers.render_template('post_install.tmpl', replace = hostdata), 200
+    return bytes('host %s not found\n\n' % id, 'utf-8'), 404
 
 def finish(args, addrs):
     logging.debug("finish: args '%s'", args)
@@ -173,11 +173,11 @@ def finish(args, addrs):
     bi = args['bootid']
     if id == 0:
         logging.warning("finish: no ID")
-        return bytes('invalid query, no id\n\n', 'utf-8')
+        return bytes('invalid query, no id\n\n', 'utf-8'), 404
     if helpers.transition(id, state = 'finished', bootid = bi):
         logging.info("finish: id %d success", id)
-        return bytes('host %s successfully transitioned to finished state\n\n' %id, 'utf-8')
-    return bytes('host %s not found or bootid %s invalid\n\n' % (id, bi), 'utf-8')
+        return bytes('host %s successfully transitioned to finished state\n\n' %id, 'utf-8'), 200
+    return bytes('host %s not found or bootid %s invalid\n\n' % (id, bi), 'utf-8'), 401
 
 def list_hosts(args):
     fmt = "%4s %-20s %-10s %-s\n"
