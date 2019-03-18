@@ -29,12 +29,14 @@ def respond_to_get_request(self, path):
     if '?' in path:
         (path, argstr) = path.split("?", 1)
         args = dict(parse_qsl(argstr))
-    # id is wanted by most functions, sanitize to avoid checking everywhere
+    # these two are wanted by many functions, sanitize to avoid checking everywhere
     try:
         tmp = int(args['id'])
         args['id'] = tmp
     except:
         args['id'] = 0
+    if not 'bootid' in args:
+        args['bootid'] = 'none_given' # invalid
     logging.info("path: %s args: %s", path, args)
     if path == '/bootstrap':
         data = bootme(args, addrs)
@@ -119,7 +121,7 @@ def run_http(address = '', port = 5000):
 
 def bootme(args, addrs):
     logging.debug("bootme: %s" % args)
-    known, num, host = helpers.find_host(args)
+    known, num, host = helpers.find_host(args, True)
     logging.debug("known, num: %s, %s", known, num)
     lip = addrs[0]
     hostdata = { 'HOST_DATA': 'unknown', 'HOST': num, 'SERVER_IP': lip['ip'], 'SERVER_PORT': lip['port'] }
@@ -152,6 +154,9 @@ def post_install(args, addrs):
         logging.warning("post_install: no ID")
         return bytes('invalid query, no id\n\n', 'utf-8')
     host = helpers.find_host_by_id(id)
+    if host['bootid'] != args['bootid']:
+        logging.warning("post_install: given bootid '%s' is wrong (%s)", args['bootid'], host['bootid'])
+        return bytes('invalid bootid\n\n', 'utf-8')
     lip = addrs[0]
     hostdata = { 'HOST': id, 'SERVER_IP': lip['ip'], 'SERVER_PORT': lip['port'] }
     if host:
@@ -165,13 +170,14 @@ def post_install(args, addrs):
 def finish(args, addrs):
     logging.debug("finish: args '%s'", args)
     id = args['id']
+    bi = args['bootid']
     if id == 0:
         logging.warning("finish: no ID")
         return bytes('invalid query, no id\n\n', 'utf-8')
-    if helpers.transition(id, state = 'finished'):
+    if helpers.transition(id, state = 'finished', bootid = bi):
         logging.info("finish: id %d success", id)
         return bytes('host %s successfully transitioned to finished state\n\n' %id, 'utf-8')
-    return bytes('host %s not found\n\n' % id, 'utf-8')
+    return bytes('host %s not found or bootid %s invalid\n\n' % (id, bi), 'utf-8')
 
 def list_hosts(args):
     fmt = "%4s %-20s %-10s %-s\n"

@@ -7,6 +7,7 @@ import threading
 import os
 import sys
 import logging
+import uuid
 
 lock = threading.Lock()
 
@@ -59,7 +60,7 @@ def get_hosts():
     lock.release()
     return known_hosts
 
-def find_host(args):
+def find_host(args, new_bootid = False):
     known = False
     error = False
     hostid = 0
@@ -68,7 +69,10 @@ def find_host(args):
     for key in args:
         arg = args[key]
         logging.debug("find_host key %s %s", key, arg)
-        arg = arg.upper()
+        try:
+            arg = arg.upper()
+        except:
+            pass # numbers...
         if not arg:
             logging.debug("%s empty" % key)
             continue
@@ -112,6 +116,9 @@ def find_host(args):
     if error:
         lock.release()
         return known, 0, None
+    if new_bootid:
+        bootid = uuid.uuid1().hex
+        tmph['bootid'] = bootid
     if not known:
         ids = sorted([d['id'] for d in known_hosts if 'id' in d])
         if ids:
@@ -129,6 +136,9 @@ def find_host(args):
             return known, ids, tmph
     host = list(filter(lambda host: host['id'] == hostid, known_hosts))[0]
     #print ("host found:", host)
+    if new_bootid:
+        host['bootid'] = bootid
+        save_json('known_hosts.json', known_hosts)
     lock.release()
     return known, hostid, host
 
@@ -166,11 +176,20 @@ def render_template(name, replace = {}, failhard = False, templatedir = True):
         return None
     return bytes('unknown template %s\n\n' % name, 'utf-8')
 
-def transition(id, state = None, hostname = None, metadata = None):
+def transition(id, state = None, hostname = None, metadata = None, bootid = None):
     lock.acquire()
     known_hosts = load_json('known_hosts.json')
     for host in known_hosts:
         if host['id'] == id:
+            if bootid:
+                if not 'bootid' in host:
+                    logging.warning("transition called with bootid %s, but host has no bootid", bootid)
+                    lock.release()
+                    return False
+                if bootid != host['bootid']:
+                    logging.warning("transition called with wrong bootid %s, correct %s" , bootid, host['bootid'])
+                    lock.release()
+                    return False
             if state:
                 host['state'] = state
             if hostname:
