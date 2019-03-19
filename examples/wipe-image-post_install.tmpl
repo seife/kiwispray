@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# use
+# ./examples/import-live-iso.sh wipe-iso \
+#       SLES_15SP0_ks-config-iso.x86_64-0.2.0-Build5.1.iso
+#
+# to generate a config for "wipe-iso", then copy this template
+# into images/wipe-iso/post_install.tmpl
+#
+exec >> /dev/console 2>&1
+
+echo "Starting post_install"
+
+# Wait for network to come up
+for i in {1..20}
+do
+  if ip route get 8.8.8.8; then
+    break
+  fi
+  sleep 3
+done
+
+echo "####################"
+echo "# wiping all disks #"
+echo "####################"
+rm -f /etc/lvm/lvm.conf
+udevadm settle
+blkid -o device -c /dev/null > /blkid.out
+# md devices need to be stopped, or underlying devs might be busy.
+for D in $(grep ^/dev/md blkid.out); do
+        mdadm --stop "$D"
+done
+# md devices are gone now => reprobe
+udevadm settle
+blkid -o device -c /dev/null > /blkid.out
+while read D; do
+        case "$D" in
+                /dev/sr*)
+                        continue ;;
+                /dev/mapper/live-*)
+                        continue ;;
+                /dev/loop*)
+                        continue ;;
+                *) ;;
+        esac
+        echo "$D" >> /devlist
+        echo "wiping $D"
+        pvremove -ffy "$D" 2>/dev/null
+        mdadm --zero-superblock "$D"
+        dd if=/dev/zero of="$D" bs=1M count=15
+done < /blkid.out
+if [ -e /devlist ]; then
+        sed -e 's/[0-9]*$//' /devlist | sort -u | \
+        while read line; do
+                echo "wiping disklabel on $line"
+                parted --script $line mklabel gpt
+                sgdisk -Z "$line"
+        done
+fi
+
+echo "all done, please reset this server"
+echo "blkid after wipe (should be empty):"
+blkid -c /dev/null
+echo "Have a lot of fun..."
+
+# signal kiwispray that we are done.
+curl -s 'http://@SERVER_IP@:@SERVER_PORT@/finish?id=@id@&bootid=@bootid@'
+
+reboot -f
