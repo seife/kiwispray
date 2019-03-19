@@ -8,7 +8,8 @@ import argparse
 import json
 from sys import exit
 
-def list_hosts(id = None):
+def list_hosts(args):
+    id = args.id
     fmt= "%4s %-20s %-10s %-s"
     known_hosts = helpers.load_json('known_hosts.json')
     #print(known_hosts)
@@ -17,7 +18,9 @@ def list_hosts(id = None):
         if id and h['id'] != id:
             continue
         print(fmt % (str(h['id']), h['hostname'], h['state'], h['serial']))
-        if id and h['metadata']:
+        if args.list and args.list > 1:
+            print("     MAC addrs: %-s" % h['macs'])
+        if (id or args.list > 1) and h['metadata']:
             print("     Metadata:")
             m = h['metadata']
             for i in sorted(m):
@@ -26,13 +29,13 @@ def list_hosts(id = None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Set host state / metadata')
     parser.add_argument('-i', '--id', type=int, help='host ID number')
-    parser.add_argument('-l', '--list', help='List known hosts', action='store_true')
+    parser.add_argument('-l', '--list', help='List known hosts', action='count')
     parser.add_argument('-s', '--state', help='State to transition the host to')
     parser.add_argument('-m', '--meta', help='JSON metadata to attach to the host')
     parser.add_argument('-n', '--hostname', help='Host name for host[id]')
     args = parser.parse_args()
     if args.list:
-        list_hosts(args.id)
+        list_hosts(args)
         exit(0)
     if args.id:
         if args.meta:
@@ -40,7 +43,7 @@ if __name__ == '__main__':
         else:
             meta = None
         if helpers.transition(args.id, state = args.state, hostname = args.hostname, metadata = meta):
-            list_hosts(args.id)
+            list_hosts(args)
             exit(0)
         else:
             print("an error occured :-(")
