@@ -133,7 +133,8 @@ def bootme(args, addrs):
     if known:
         if num == 0:
             return helpers.render_template('error.tmpl')
-        state = host['state']
+        state = host['state'].split(',')[0]
+        hostdata['state'] = state
         logging.info("known host in state : %s" % state)
         # first look in ./<state>/host.tmpl...
         data = helpers.render_template('images/%s/host.tmpl' % state, replace = hostdata, failhard = True, templatedir = False)
@@ -161,7 +162,9 @@ def post_install(args, addrs):
     hostdata = { 'HOST': id, 'SERVER_IP': lip['ip'], 'SERVER_PORT': lip['port'] }
     if host:
         hostdata.update(host)
-        data = helpers.render_template('images/%s/post_install.tmpl' % host['state'], replace = hostdata, failhard = True)
+        state = host['state'].split(',')[0]
+        hostdata['state'] = state
+        data = helpers.render_template('images/%s/post_install.tmpl' % state, replace = hostdata, failhard = True, templatedir = False)
         if data:
             return data, 200
         return helpers.render_template('post_install.tmpl', replace = hostdata), 200

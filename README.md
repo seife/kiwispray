@@ -46,6 +46,15 @@ To automate this transition to finished, a post-install script is provided by th
 
 You need to implement some way in your image to get the location of this post-install URL during installation, then fetch and execute it. We implemented this by appending `razorurl=<POST_INSTALL_URL>` to the kernel command line.
 
+## Multiple states
+
+There is now support for applying multiple images in a row. This is probably only useful for the following scenario:
+
+   * First boot a live image that configures the BIOS, prepares the raid controller, ...
+   * Next boot the installation image, that deploys the OS
+
+This is configured by simply concatenating all states comma-separated like this: `./edit-host.py -i 1 -s wipe,image1`. This example will first boot the `wipe` image, then `image1`. Once all images are applied, the machine will transition to `finished` state.Note that the `wipe` image will also need to fetch the post-install-URL and trigger the `/finish` routine.
+
 ## File System Layout
 
 ```
