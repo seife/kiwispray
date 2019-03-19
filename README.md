@@ -55,6 +55,10 @@ There is now support for applying multiple images in a row. This is probably onl
 
 This is configured by simply concatenating all states comma-separated like this: `./edit-host.py -i 1 -s wipe,image1`. This example will first boot the `wipe` image, then `image1`. Once all images are applied, the machine will transition to `finished` state.Note that the `wipe` image will also need to fetch the post-install-URL and trigger the `/finish` routine.
 
+## Security
+
+Minimal security is provided by a random generated UUID for each machine that is renewed whenever the `/bootstrap` path is called. This bootid has to be handed out to the booting image via the templates, default is it is appended to the `razorurl=` path, the templates use the `@bootid@` placeholder. This bootid has to be appended to all HTTP API calls (`/post-install`, `/finish`) as parameter, or the call will not be allowed.
+
 ## File System Layout
 
 ```
