@@ -50,7 +50,7 @@ echo kernel \${HTTP_STATE}/linux
 echo initrd \${HTTP_STATE}/initrd
 echo
 prompt --key s --timeout 3000 hit 's' for the iPXE shell; continuing in 3 seconds && shell ||
-kernel \${HTTP_STATE}/linux \${KERNEL_LINE} || goto error
+kernel \${HTTP_STATE}/linux initrd=initrd \${KERNEL_LINE} || goto error
 initrd \${HTTP_STATE}/initrd || goto error
 boot
 

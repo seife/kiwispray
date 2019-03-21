@@ -64,7 +64,7 @@ echo kernel \${HTTP_STATE}/pxeboot.kernel
 echo initrd \${HTTP_STATE}/pxeboot.initrd.xz
 echo
 prompt --key s --timeout 3000 hit 's' for the iPXE shell; continuing in 3 seconds && shell ||
-kernel \${HTTP_STATE}/pxeboot.kernel \${KERNEL_LINE} || goto error
+kernel \${HTTP_STATE}/pxeboot.kernel initrd=pxeboot.initrd.xz \${KERNEL_LINE} || goto error
 initrd \${HTTP_STATE}/pxeboot.initrd.xz || goto error
 boot
 

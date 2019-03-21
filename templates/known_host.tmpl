@@ -14,7 +14,7 @@ echo kernel ${HTTP_STATE}/pxeboot.kernel
 echo initrd ${HTTP_STATE}/pxeboot.initrd.xz
 echo
 sleep 3
-kernel ${HTTP_STATE}/pxeboot.kernel ${KERNEL_LINE} || goto error
+kernel ${HTTP_STATE}/pxeboot.kernel initrd=pxeboot.initrd.xz ${KERNEL_LINE} || goto error
 initrd ${HTTP_STATE}/pxeboot.initrd.xz || goto error
 boot
 
