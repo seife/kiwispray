@@ -23,13 +23,13 @@ SDIR=images/$STATE
 set -e
 type 7z > /dev/null
 
-if [ ! -d $DIR ] && ! mkdir $SDIR; then
+if [ ! -d "$SDIR" ] && ! mkdir "$SDIR"; then
 	echo "problem creating directory... please clean up first."
 	echo
 	exit 1
 fi
-cd $SDIR
-cp -p "$2" .
+cp -p "$2" "$SDIR"
+cd "$SDIR"
 
 7z e "$NAME" boot/x86_64/loader/{linux,initrd}
 
