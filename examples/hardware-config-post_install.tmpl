@@ -1,0 +1,54 @@
+#!/bin/bash
+#
+# script for ks-config.iso fro
+#   https://build.opensuse.org/package/show/home:seife:kiwitest/
+#   package SLES_15SP0_ks-config-iso
+# use
+# ./examples/import-live-iso.sh hardware-config \
+#       SLES_15SP0_ks-config-iso.x86_64-0.3.1-Build1.1.iso
+#
+# to generate a config for "hardware-config", then copy this template
+# into images/hardware-config/post_install.tmpl
+#
+# additionally, put your hardware-config.tar.gz (wich contains a
+# subdirectory "hardware-config/" with a "run.sh" script that does
+# all the work...) into images/hardware-config
+#
+exec >> /dev/console 2>&1
+
+echo "Starting post_install"
+
+# Wait for network to come up
+for i in {1..20}
+do
+  if ip route get 8.8.8.8; then
+    break
+  fi
+  sleep 3
+done
+
+FAIL=false
+curl -O 'http://@SERVER_IP@:@SERVER_PORT@/images/@state@/hardware-config.tar.gz'
+tar xvf hardware-config.tar.gz || FAIL=true
+cd hardware-config || FAIL=true
+bash ./run.sh || FAIL=true
+
+echo "Have a lot of fun..."
+
+# signal kiwispray that we are done.
+if $FAIL; then
+	echo "########################################################"
+	echo "########################################################"
+	echo "#### SOMETHING HAS FAILED ##############################"
+	echo "########################################################"
+	echo "#### rebooting in 10 minutes ###########################"
+	echo "#### (touch /stop to stop the auto-reboot) #############"
+	echo "########################################################"
+	echo "########################################################"
+	sleep 10m
+	[ -e /stop ] || reboot -f
+fi
+
+# everything went fine,,,
+curl -s 'http://@SERVER_IP@:@SERVER_PORT@/finish?id=@id@&bootid=@bootid@'
+reboot -f
