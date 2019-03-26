@@ -135,23 +135,22 @@ def bootme(args, addrs):
         hostdata['HOST_DATA'] = ''
         for key in sorted(host):
             hostdata['HOST_DATA'] += 'echo * '+ key + ': "' + str(host[key]) + '"\n'
-    if known:
-        if num == 0:
-            return helpers.render_template('error.tmpl')
-        state = host['state'].split(',')[0]
-        hostdata['state'] = state
-        logging.info("known host in state : %s" % state)
-        # first look in ./<state>/host.tmpl...
-        data = helpers.render_template('images/%s/host.tmpl' % state, replace = hostdata, failhard = True, templatedir = False)
-        if data:
-            return data
-        # ...then look in templates/<state.tmpl>...
-        data = helpers.render_template(state + '.tmpl', replace = hostdata, failhard = True)
-        if data:
-            return data
-        # ...else return templates/known_host.tmpl
-        return helpers.render_template('known_host.tmpl', replace = hostdata)
-    return helpers.render_template('new_host.tmpl', replace = hostdata)
+    if num == 0:
+        return helpers.render_template('error.tmpl')
+    state = host['state'].split(',')[0]
+    hostdata['state'] = state
+    logging.info("found host in state : %s" % state)
+    # first look in ./<state>/host.tmpl...
+    data = helpers.render_template('images/%s/host.tmpl' % state, replace = hostdata, failhard = True, templatedir = False)
+    if data:
+        return data
+    # ...then look in templates/<state.tmpl>...
+    data = helpers.render_template(state + '.tmpl', replace = hostdata, failhard = True)
+    if data:
+        return data
+    # ...else return templates/known_host.tmpl
+    # something went wrong? No matching state?
+    return helpers.render_template('known_host.tmpl', replace = hostdata)
 
 def post_install(args, addrs):
     logging.debug("post_install: %s" % args)

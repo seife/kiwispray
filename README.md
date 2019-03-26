@@ -89,7 +89,6 @@ Minimal security is provided by a random generated UUID for each machine that is
     ├── bootstrap.ipxe
     ├── finished.tmpl
     ├── known_host.tmpl
-    ├── new_host.tmpl
-    ├── new.tmpl -> new_host.tmpl
+    ├── new.tmpl
     └── post_install.tmpl
 ```
