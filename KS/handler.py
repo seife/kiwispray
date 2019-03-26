@@ -3,11 +3,13 @@
 # License: GPL-2.0+, see COPYING
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from cgi import parse_header, parse_multipart
 from urllib.parse import parse_qs, parse_qsl
 from socketserver import ThreadingMixIn
 import os
 import sys
 import logging
+import json
 
 import KS.helpers as helpers
 
@@ -74,6 +76,27 @@ def respond_to_get_request(self):
         return send_back(self, data)
     return send_back(self, bytes('file not found\n', 'utf-8'), 404)
 
+def respond_to_post_request(self):
+    args, path = get_args(self.path)
+    logging.info('post path: %s args: %s', path, args)
+    try:
+        ctype, pdict = parse_header(self.headers['content-type'])
+    except:
+        ctype = ''
+        pdict = {}
+    if ctype == 'multipart/form-data':
+        post_data = parse_multipart(self.rfile, pdict)
+    elif ctype == 'application/x-www-form-urlencoded':
+        length = int(self.headers['content-length'])
+        post_decoded = self.rfile.read(length).decode('utf-8')
+        post_data = parse_qs(post_decoded, keep_blank_values=1, encoding="utf-8", errors="strict")
+    else:
+        post_data = {}
+    if path == '/update':
+        data, status = update_host(args, post_data)
+        return send_back(self, data, status)
+    return send_back(self, bytes('bad request\n', 'utf-8'), 400)
+
 #------------------------------------------------------------------------------#
 #           http request handler                                               #
 #------------------------------------------------------------------------------#
@@ -96,6 +119,11 @@ class Server(BaseHTTPRequestHandler):
     def do_GET(self):
         data = respond_to_get_request(self)
         logging.debug("do_GET: data '%s'" % data)
+        if data:
+            self.wfile.write(data)
+    def do_POST(self):
+        # print(self.headers)
+        data = respond_to_post_request(self)
         if data:
             self.wfile.write(data)
     # send headder
@@ -170,6 +198,53 @@ def post_install(args, addrs):
             return data, 200
         return helpers.render_template('post_install.tmpl', replace = hostdata), 200
     return bytes('host %s not found\n\n' % id, 'utf-8'), 404
+
+def update_host(args, post_data):
+    logging.debug("update_host %s" % args)
+    id = args['id']
+    if id == 0:
+        logging.warning("update_host: no ID")
+        return bytes('invalid query, no id\n\n', 'utf-8'), 404
+    host = helpers.find_host_by_id(id)
+    if not host:
+        return bytes('host %s not found\n\n' % id, 'utf-8'), 404
+    if not host['bootid'] or host['bootid'] != args['bootid']:
+        logging.warning("update_host: given bootid '%s' is wrong (%s)", args['bootid'], host['bootid'])
+        return bytes('invalid bootid\n\n', 'utf-8'), 401
+    state = host['state'].split(',')[0]
+    if state != 'discover':
+        logging.warning("update_host: state of host %d is not discover (%s)", id, host['state'])
+        return bytes('invalid state\n\n', 'utf-8'), 401
+    macs = host['macs']
+    metadata = host['metadata']
+    for k in post_data:
+        v = post_data[k]
+        for l in v:
+            if k == 'mac':
+                try:
+                    mac = l.upper()
+                except:
+                    continue
+                if mac in macs:
+                    continue
+                macs += ' ' + mac
+                continue
+            if k == 'metadata':
+                try:
+                    meta = json.loads(l)
+                except Exception as e:
+                    print(e)
+                    continue
+                metadata.update(meta)
+                continue
+            logging.error("update_host: unhandled post_data key %s", k)
+            return bytes('unhandled post_data key\n', 'utf-8'), 400
+    hostdata = {}
+    hostdata['macs'] = macs
+    hostdata['metadata'] = metadata
+    if helpers.update_hostdata(id, hostdata):
+        return bytes('ok\n', 'utf-8'), 200
+    return bytes('an error occured\n', 'utf-8'), 500
 
 def finish(args, addrs):
     logging.debug("finish: args '%s'", args)

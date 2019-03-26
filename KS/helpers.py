@@ -54,6 +54,21 @@ def find_host_by_id(arg):
         return host[0]
     return None
 
+def update_hostdata(id, hostdata):
+    lock.acquire()
+    known_hosts = load_json('known_hosts.json')
+    logging.debug("update_hostdata %d\n%s", id, known_hosts)
+    host = list(filter(lambda host: host['id'] == id, known_hosts))
+    if not host:
+        lock.release()
+        return False
+    host[0].update(hostdata)
+    #print("hostdata: ", hostdata)
+    #print("host[0]: ", host[0])
+    save_json('known_hosts.json', known_hosts)
+    lock.release()
+    return True
+
 def get_hosts():
     lock.acquire()
     known_hosts = load_json('known_hosts.json')
