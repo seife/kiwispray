@@ -193,10 +193,10 @@ def transition(id, state = None, hostname = None, metadata = None, bootid = None
             if state:
                 if state == 'finished' and bootid:              # special case, only if called via http API:
                     try:                                        # if multiple states are specified 'foo,bar,baz'
-                       state = host['state'].split(',', 1)[1]   # remove the first word from comma separated list
-                       logging.info("transitioned host to next state %s", state)
+                        state = host['state'].split(',', 1)[1]  # remove the first word from comma separated list
+                        logging.info("transitioned host to next state %s", state)
                     except:
-                       pass
+                        pass
                 host['state'] = state
             if hostname:
                 host['hostname'] = hostname
