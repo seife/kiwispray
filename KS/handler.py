@@ -16,15 +16,8 @@ def send_back(self, data, code = 200):
     self._set_headers(size = len(data), ctype = 'text/plain', code = code)
     return data
 
-#------------------------------------------------------------------------------#
-#                       handle http get request                                #
-#------------------------------------------------------------------------------#
-def respond_to_get_request(self, path):
-    loc = self.request.getsockname()
-    rem = self.request.getpeername()
-    addrs = ({ 'ip': loc[0], 'port': loc[1] }, { 'ip': rem[0], 'port': rem[1] })
-    logging.debug('>>>>Req->: %s', path)
-    # logging.debug('>>>>Req->: %s', addrs)
+# get args from URL path, sanitize id and bootid
+def get_args(path):
     args = {}
     if '?' in path:
         (path, argstr) = path.split("?", 1)
@@ -37,6 +30,18 @@ def respond_to_get_request(self, path):
         args['id'] = 0
     if not 'bootid' in args:
         args['bootid'] = 'none_given' # invalid
+    return args, path
+
+#------------------------------------------------------------------------------#
+#                       handle http get request                                #
+#------------------------------------------------------------------------------#
+def respond_to_get_request(self, path):
+    loc = self.request.getsockname()
+    rem = self.request.getpeername()
+    addrs = ({ 'ip': loc[0], 'port': loc[1] }, { 'ip': rem[0], 'port': rem[1] })
+    logging.debug('>>>>Req->: %s', path)
+    # logging.debug('>>>>Req->: %s', addrs)
+    args, path = get_args(self.path)
     logging.info("path: %s args: %s", path, args)
     if path == '/bootstrap':
         data = bootme(args, addrs)
