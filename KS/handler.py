@@ -35,12 +35,10 @@ def get_args(path):
 #------------------------------------------------------------------------------#
 #                       handle http get request                                #
 #------------------------------------------------------------------------------#
-def respond_to_get_request(self, path):
+def respond_to_get_request(self):
     loc = self.request.getsockname()
     rem = self.request.getpeername()
     addrs = ({ 'ip': loc[0], 'port': loc[1] }, { 'ip': rem[0], 'port': rem[1] })
-    logging.debug('>>>>Req->: %s', path)
-    # logging.debug('>>>>Req->: %s', addrs)
     args, path = get_args(self.path)
     logging.info("path: %s args: %s", path, args)
     if path == '/bootstrap':
@@ -96,8 +94,7 @@ class Server(BaseHTTPRequestHandler):
         self.end_headers()
     # process get requests
     def do_GET(self):
-        path = self.path
-        data = respond_to_get_request(self, path)
+        data = respond_to_get_request(self)
         logging.debug("do_GET: data '%s'" % data)
         if data:
             self.wfile.write(data)
