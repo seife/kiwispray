@@ -52,6 +52,9 @@ def respond_to_get_request(self):
     elif path == '/finish':
         data, status = finish(args, addrs)
         return send_back(self, data, status)
+    elif path == '/state':
+        data, status = get_state(args)
+        return send_back(self, data, status)
     elif path == '/hosts':
         data = list_hosts(args)
         return send_back(self, data)
@@ -257,6 +260,18 @@ def finish(args, addrs):
         logging.info("finish: id %d success", id)
         return bytes('host %s successfully transitioned to finished state\n\n' %id, 'utf-8'), 200
     return bytes('host %s not found or bootid %s invalid\n\n' % (id, bi), 'utf-8'), 401
+
+def get_state(args):
+    logging.debug("get_state: args '%s'", args)
+    id = args['id']
+    if id == 0:
+        logging.warning("get_state: no ID")
+        return bytes('invalid query, no id\n\n', 'utf-8'), 404
+    host = helpers.find_host_by_id(id)
+    if not host:
+        return bytes('host %s not found\n\n' % id, 'utf-8'), 404
+    state = host['state'].split(',')[0]
+    return bytes('%s\n' % state, 'utf-8'), 200
 
 def list_hosts(args):
     fmt = "%4s %-20s %-10s %-s\n"
