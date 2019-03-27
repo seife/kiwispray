@@ -8,6 +8,18 @@ import argparse
 import json
 from sys import exit
 
+def print_meta(m, prefix=None, verbose=None):
+    for k, v in sorted(m.items()):
+        if prefix:
+            p = prefix + '.'+ k
+        else:
+            p = k
+        if isinstance(v, dict):
+            if verbose and verbose > 2:
+                print_meta(v, p, verbose)
+        else:
+            print("        %-21s '%-s'" % (p, v))
+
 def list_hosts(args):
     id = args.id
     fmt= "%4s %-20s %-10s %-s"
@@ -22,9 +34,7 @@ def list_hosts(args):
             print("     MAC addrs: %-s" % h['macs'])
         if (id or args.list > 1) and h['metadata']:
             print("     Metadata:")
-            m = h['metadata']
-            for i in sorted(m):
-                print("        %-10s %-s" % (i, m[i]))
+            print_meta(h['metadata'], verbose=args.list)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Set host state / metadata')
