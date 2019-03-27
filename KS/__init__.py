@@ -4,5 +4,5 @@ import os
 import KS.handler as handler
 
 
-def run():
-    handler.run_http()
+def run(disc):
+    handler.run_http(discover = disc)

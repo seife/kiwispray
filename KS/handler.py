@@ -141,7 +141,8 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 #------------------------------------------------------------------------------#
 #           run the http server in backgroung                                  #
 #------------------------------------------------------------------------------#
-def run_http(address = '', port = 5000):
+def run_http(discover = False, address = '', port = 5000):
+    helpers.set_discover(discover)
     server_class=ThreadedHTTPServer
     handler_class=Server
     server_address = (address, port)

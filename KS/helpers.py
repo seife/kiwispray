@@ -11,6 +11,13 @@ import uuid
 
 lock = threading.Lock()
 
+discover = False
+
+def set_discover(new):
+    print("set discover: ", new)
+    global discover
+    discover = new
+
 def load_json(filename):
     try:
         with open(filename, 'r') as json_file:
@@ -144,7 +151,10 @@ def find_host(args, new_bootid = False):
         logging.info("new host with id: %d", id)
         if tmph['serial'] and tmph['macs']:
             tmph['id'] = id
-            tmph['state'] = 'new'
+            if discover:
+                tmph['state'] = 'discover,new'
+            else:
+                tmph['state'] = 'new'
             known_hosts.append(tmph)
             save_json('known_hosts.json', known_hosts)
             lock.release()
