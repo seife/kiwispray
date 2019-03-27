@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# use
+# ./examples/import-live-iso.sh discover \
+#       SLES_15SP0_ks-config-iso.x86_64-0.3.3-Build1.1.iso
+#
+# to generate a config for "discover", then copy this template
+# into images/discover/post_install.tmpl
+#
+exec >> /dev/console 2>&1
+
+echo "Starting post_install"
+
+# Wait for network to come up
+for i in {1..20}
+do
+  if ip route get 8.8.8.8; then
+    break
+  fi
+  sleep 3
+done
+
+echo "##########################"
+echo "# updating host metadata #"
+echo "##########################"
+cd /sys/class/net || : # does not fail
+MACS=()
+for i in *; do
+        case "$i" in
+                lo|dummy*)
+                        continue ;;
+                *)      MAC=""
+                        read -r MAC < "$i"/address || continue
+                        [ "$MAC" = "00:00:00:00:00:00" ] && continue
+                        [ -z "$MAC" ] && continue
+                        MACS+=(-d "mac=$MAC")
+                        ;;
+        esac
+done
+
+function get_dmi_json() {
+        cd /sys/class/dmi/id || : # must not fail :-)
+        local first=true f l
+        echo -n '{"dmi": {'
+        for f in bios_* board_* chassis_* product_* sys_*; do
+                read -r l < "$f"
+                $first || echo -n ","
+                first=false
+                echo -n "\"$f\": \"$l\""
+        done
+        echo ' }}'
+}
+
+IPMI_ADDR=$(ipmitool lan print | sed -n '/^IP Address \+:/{s/^.*: //;p}')
+[ -z "$IPMI_ADDR" ] && IPMI_ADDR="unknown"
+METADATA=(-d 'metadata={"ipmi_addr": "'"$IPMI_ADDR"'"}')
+METADATA+=(-d 'metadata='"$(get_dmi_json)")
+# update metadata
+curl 'http://@SERVER_IP@:@SERVER_PORT@/update?id=@id@&bootid=@bootid@' "${MACS[@]}" "${METADATA[@]}"
+
+# signal kiwispray that we are done.
+curl -s 'http://@SERVER_IP@:@SERVER_PORT@/finish?id=@id@&bootid=@bootid@'
+echo "# metadata update finished #"
+
+sleep 1
+STATE=$(curl -s 'http://@SERVER_IP@:@SERVER_PORT@/state?id=@id@&bootid=@bootid@')
+
+# if the state was set automatically via the "--discover" option, it is
+# 'discover,new', so next state is 'new'.
+# if the state was set manually to 'discover,something' reboot to start next state
+[ "$STATE" != "new" ] && reboot -f
+
+#
+# now wait for someone to change the state to something else than 'new'
+#
+
+## create script and service file...
+WSCR=/waitfor.sh
+rm -f ${WSCR}
+cat > ${WSCR} << EOF
+#!/bin/bash
+STATE=new
+while [ "\$STATE" = "new" ]; do
+        sleep 1m
+        STATE=\$(curl -s 'http://@SERVER_IP@:@SERVER_PORT@/state?id=@id@&bootid=@bootid@')
+done
+reboot -f
+EOF
+chmod 0755 ${WSCR}
+cat > /etc/systemd/system/waitfor.service << EOF
+[Unit]
+Description=KIWISpray Wait for state change
+After=network.service
+
+[Service]
+Type=simple
+ExecStart=${WSCR}
+Restart=always
+EOF
+## apply...
+systemctl daemon-reload
+systemctl start waitfor.service
